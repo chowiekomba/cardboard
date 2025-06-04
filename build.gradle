@@ -1,18 +1,18 @@
 import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 
 plugins {
-    id 'fabric-loom' version '1.10-SNAPSHOT'
+    id 'fabric-loom' version '1.10'
     id 'maven-publish'
     id 'com.gradleup.shadow' version '8.3.6'
     id 'java-library'
-    id "com.peterabeles.gversion" version "1.10.3"
-    id "com.modrinth.minotaur" version "2+"
+    id 'com.peterabeles.gversion' version '1.10.3'
+    id 'com.modrinth.minotaur' version '2.+'
 }
 
 gversion {
-  srcDir = "src/main/java/"
-  classPackage = "org.cardboardpowered"
-  className = "GitVersion"
+    srcDir = "src/main/java/"
+    classPackage = "org.cardboardpowered"
+    className = "GitVersion"
 }
 project.compileJava.dependsOn(createVersionFile)
 
@@ -29,98 +29,82 @@ configurations {
     metest
 }
 
-
 loom {
     accessWidenerPath = file("src/main/resources/bukkitfabric.accesswidener")
 }
 
 repositories {
-
     maven { url = 'https://jitpack.io' }
     maven { url = 'https://repo.codemc.io/repository/maven-releases/' }
-	maven { url = 'https://repo.spongepowered.org/maven' }
-	maven { url = 'https://repo.papermc.io/repository/maven-public/' }
-	maven { url = 'https://maven.izzel.io/releases' }
+    maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
+    maven { url = 'https://repo.papermc.io/repository/maven-public/' }
+    maven { url = 'https://maven.izzel.io/releases' }
     mavenCentral()
 }
 
 configurations.all {
-    // Check for updates every build
     resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
 }
 
 // Paper-API
-def PAPER_VER_A = "1.21.4-R0.1-SNAPSHOT"
-// def PAPER_VER_B = "1.21.4-R0.1-20250313.115134-207"
-//paper-api-1.21.4-R0.1-20250511.205801-225
-def PAPER_VER_B = "1.21.4-R0.1-20250511.205801-225"
-
-def PAPER_API_VER = "io.papermc.paper:paper-api:" + PAPER_VER_B
+def PAPER_VER_A = "1.21.5-R0.1-SNAPSHOT"
+def PAPER_VER_B = "1.21.5-R0.1-SNAPSHOT" // Placeholder; replace with actual version from https://papermc.io/downloads/paper
+def PAPER_API_VER = "io.papermc.paper:paper-api:${PAPER_VER_B}"
 
 dependencies {
-    minecraft("com.mojang:minecraft:${project.minecraft_version}") {
-    	exclude module: 'commons-logging'
-    }
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-    modImplementation("net.fabricmc:fabric-loader:${project.loader_version}")
-    // modImplementation("net.fabricmc.fabric-api:fabric-api:${project.fabric_version}")
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     
-    // Make a collection of all api modules we wish to use
+    // Fabric API modules
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     Set<String> apiModules = [
-    	"fabric-api-base",
-    	"fabric-networking-api-v1",
-    	"fabric-screen-handler-api-v1"
+        "fabric-api-base",
+        "fabric-networking-api-v1",
+        "fabric-screen-handler-api-v1"
     ]
+    apiModules.each { module ->
+        modImplementation "net.fabricmc.fabric-api:${module}:${project.fabric_version}"
+    }
 
-    DefaultExternalModuleDependency ic = new DefaultExternalModuleDependency("com.javazilla.mods", "icommon-fabric-1.21.4", "1.21.4", null)
-    ic.setChanging(true) // Make sure we get the latest version of iCommon
+    // iCommon dependency
+    DefaultExternalModuleDependency ic = new DefaultExternalModuleDependency("com.javazilla.mods", "icommon-fabric-1.21.5", "1.21.5", null)
+    ic.setChanging(true)
+    modImplementation ic
 
-    // include(modImplementation(ic))
-    modImplementation(ic)
+    // MohistRemapper and other local dependencies
+    modImplementation fileTree(dir: 'libs', include: 'MohistRemapper-0.3-1.21.5.jar')
+    extraLibs fileTree(dir: 'libs', include: 'MohistRemapper-0.3-1.21.5.jar')
     
-    //modImplementation( project(':iCommon-API') )
-    //include( project(':iCommon-API') )
-
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-
-    modImplementation fileTree(dir: 'libs', include: 'MohistRemapper-0.3-1.20.x.jar')
-    extraLibs fileTree(dir: 'libs', include: 'MohistRemapper-0.3-1.20.x.jar')
-	
-	modImplementation "io.izzel:tools:1.3.0"
+    modImplementation "io.izzel:tools:1.3.0"
     extraLibs "io.izzel:tools:1.3.0"
 
     extraLibs fileTree(dir: 'libs', include: 'commons-lang-2.6.jar')
     extraLibs fileTree(dir: 'libs', include: 'adventure-exam.jar')
     extraLibs group: "com.googlecode.json-simple", name: "json-simple", version: "1.1.1"
+    extraLibs "org.yaml:snakeyaml:1.33"
 
-    extraLibs("org.yaml:snakeyaml:1.33")
-
-	// Paper-API libs
-	modImplementation(PAPER_API_VER)
-	modImplementation("net.md-5:bungeecord-chat:1.16-R0.4")
-	modImplementation("net.kyori:adventure-api:4.18.0")
-	modImplementation("net.kyori:adventure-text-serializer-gson:4.18.0")
-	modImplementation("net.kyori:adventure-text-serializer-legacy:4.18.0")
-	modImplementation("net.kyori:adventure-text-serializer-plain:4.18.0")
-	modImplementation("net.kyori:adventure-text-minimessage:4.18.0")
+    // Paper-API and related dependencies
+    modImplementation PAPER_API_VER
+    modImplementation "net.md-5:bungeecord-chat:1.16-R0.4"
+    modImplementation "net.kyori:adventure-api:4.18.0"
+    modImplementation "net.kyori:adventure-text-serializer-gson:4.18.0"
+    modImplementation "net.kyori:adventure-text-serializer-legacy:4.18.0"
+    modImplementation "net.kyori:adventure-text-serializer-plain:4.18.0"
+    modImplementation "net.kyori:adventure-text-minimessage:4.18.0"
 
     compileOnly fileTree(dir: 'libs', include: 'commons-lang-2.6.jar')
     compileOnly group: "org.jetbrains", name: "annotations", version: "18.0.0"
     compileOnly group: "com.googlecode.json-simple", name: "json-simple", version: "1.1.1"
-
-	compileOnly "io.leangen.geantyref:geantyref:1.3.16"
-	include(modImplementation("io.leangen.geantyref:geantyref:1.3.16"))
+    compileOnly "io.leangen.geantyref:geantyref:1.3.16"
+    include(modImplementation("io.leangen.geantyref:geantyref:1.3.16"))
 
     // NMS Remapping
     extraLibs fileTree(dir: 'libs', include: "srglib-0.1.2.jar")
     include(modImplementation("net.md-5:SpecialSource:1.11.2"))
-
     compileOnly fileTree(dir: 'libs', include: "srglib-0.1.2.jar")
 
-    // (Optional) Fabric Permissions API.
-    // modImplementation "com.javazilla.mods:permissions:1.1"
-
-    // Remove parts that are included with Minecraft or Downloaded
+    // Remove conflicting dependencies
     removeLibs group: "com.google.guava", name: "guava", version: "21.0"
     removeLibs group: 'org.apache.commons', name: 'commons-lang3', version: '3.8.1'
     removeLibs group: 'org.apache.commons', name: 'commons-collections4', version: '4.2'
@@ -130,13 +114,7 @@ dependencies {
     removeLibs group: 'com.google.code.gson', name: 'gson', version: '2.8.6'
     removeLibs group: 'junit', name: 'junit', version: '4.10'
 
-    configurations.api.extendsFrom( (configurations.extraLibs) )
-
-   //  annotationProcessor 'com.github.bsideup.jabel:jabel-javac-plugin:0.4.1'
-   
- 	// TODO:
-   	// annotationProcessor("com.pkware.jabel:jabel-javac-plugin:1.0.1-1")
-    compileOnly("com.pkware.jabel:jabel-javac-plugin:1.0.1-1")
+    configurations.api.extendsFrom(configurations.extraLibs)
 }
 
 configurations.implementation {
@@ -144,9 +122,8 @@ configurations.implementation {
 }
 
 configure([tasks.compileJava]) {
-    sourceCompatibility = 21//16 // for the IDE support
-    options.release = 21//16
-
+    sourceCompatibility = 21
+    options.release = 21
     javaCompiler = javaToolchains.compilerFor {
         languageVersion = JavaLanguageVersion.of(21)
     }
@@ -154,36 +131,32 @@ configure([tasks.compileJava]) {
 
 processResources {
     inputs.property "version", project.version
-
-	duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
     from(sourceSets.main.resources.srcDirs) {
         include "fabric.mod.json"
-        if(System.env.BUILD_NUMBER){
-            expand "version": System.env.BUILD_NUMBER
+        if (System.env.BUILD_NUMBER) {
+            expand "version": "${project.version}-${System.env.BUILD_NUMBER}"
         }
     }
-
     from(sourceSets.main.resources.srcDirs) {
         exclude "fabric.mod.json"
     }
 }
 
 tasks.withType(JavaCompile) {
-	options.encoding = "UTF-8"
-	options.deprecation = false
-	options.compilerArgs << '-Xlint:-deprecation'
-	options.compilerArgs << '-Xlint:-removal'
-	options.compilerArgs << '-Xlint:-dep-ann'
-	options.compilerArgs << '-XDignore.symbol.file'
-	
-	println(options.compilerArgs)
+    options.encoding = "UTF-8"
+    options.deprecation = false
+    options.compilerArgs << '-Xlint:-deprecation'
+    options.compilerArgs << '-Xlint:-removal'
+    options.compilerArgs << '-Xlint:-dep-ann'
+    options.compilerArgs << '-XDignore.symbol.file'
 }
 
 jar {
-	duplicatesStrategy = DuplicatesStrategy.WARN
+    duplicatesStrategy = DuplicatesStrategy.WARN
     from "LICENSE"
     from {
-        (configurations.extraLibs - configurations.removeLibs).filter{ it.exists() }.collect { it.isDirectory() ? it : zipTree(it) }
+        (configurations.extraLibs - configurations.removeLibs).filter { it.exists() }.collect { it.isDirectory() ? it : zipTree(it) }
     }
     exclude("**/mojang-translations/")
 }
@@ -191,78 +164,70 @@ jar {
 shadowJar {
     configurations = [project.configurations.api]
     dependencies {
-      exclude(dependency('com.mojang:minecraft:*'))
-      exclude(dependency('org.objectweb:asm:*'))
-      exclude(dependency('com.google.guava:guava:*'))
+        exclude(dependency('com.mojang:minecraft:*'))
+        exclude(dependency('org.objectweb:asm:*'))
+        exclude(dependency('com.google.guava:guava:*'))
     }
 }
 
 modrinth {
-    token = System.getenv("MODRINTH") // This is the default. Remember to have the MODRINTH_TOKEN environment variable set or else this will fail, or set it to whatever you want - just make sure it stays private!
-    projectId = "MLYQ9VGP" // This can be the project ID or the slug. Either will work!
-    versionNumber = "1.21.4-" + System.env.BUILD_NUMBER // You don't need to set this manually. Will fail if Modrinth has this version already
-    versionType = "beta" // This is the default -- can also be `beta` or `alpha`
-    uploadFile = remapJar // With Loom, this MUST be set to `remapJar` instead of `jar`!
-    gameVersions = ["1.21.4"] // Must be an array, even with only one version
-    loaders = ["fabric"] // Must also be an array - no need to specify this if you're using Loom or ForgeGradle
+    token = System.getenv("MODRINTH")
+    projectId = "MLYQ9VGP"
+    versionNumber = "${project.mod_version}-${System.env.BUILD_NUMBER}"
+    versionType = "beta"
+    uploadFile = remapJar
+    gameVersions = ["1.21.5"]
+    loaders = ["fabric"]
 }
-
 
 ext.getURLofDependencyArtifact = {
-	project.configurations.modImplementation.dependencies.each { dep ->
-		if (dep.name.contains('paper')) {
-			println(dep.name)
-			println(dep)
-			def urls = [
-				'https://repo.papermc.io/repository/maven-snapshots/',
-				'https://repo.codemc.io/repository/nms-local/',
-				'https://repo.codemc.io/repository/maven-releases/'
-			]
-
-			for (String url : urls) {
-				def jarUrl = String.format("%s%s/%s/%s/%s-%s.jar", url.toString(), dep.group.replace('.', '/'), dep.name, dep.version, dep.name, dep.version)
-				try {
-					def jarfile = new URL(jarUrl)
-					def inStream = jarfile.openStream();
-					if (inStream != null) {
-						println(String.format("%s:%s:%s", dep.group, dep.name, dep.version) + " -> " + jarUrl)
-						return jarUrl
-					}
-				} catch (Exception ignored) {
-				}
-			}
-		}
-	}
-}
-
-ext.downloadPaperFile = {
-//    def fileURL = new URL("https://repo.papermc.io/repository/maven-snapshots/io/papermc/paper/paper-api/" + PAPER_VER_A +"/paper-api-" + PAPER_VER_B + ".jar")
-    def fileURL = new URL("https://web.archive.org/web/20250518123011/https://repo.papermc.io/repository/maven-snapshots/io/papermc/paper/paper-api/1.21.4-R0.1-SNAPSHOT/paper-api-1.21.4-R0.1-20250511.205801-225.jar")
-    def localFile = file("repos/tempp/paper-api-" + PAPER_VER_B + ".jar")
-
-    localFile.getParentFile().mkdirs()
-    fileURL.withInputStream { i ->
-		localFile.withOutputStream { o ->
-			o << i
-		}
+    project.configurations.modImplementation.dependencies.each { dep ->
+        if (dep.name.contains('paper')) {
+            def urls = [
+                'https://repo.papermc.io/repository/maven-snapshots/',
+                'https://repo.codemc.io/repository/nms-local/',
+                'https://repo.codemc.io/repository/maven-releases/'
+            ]
+            for (String url : urls) {
+                def jarUrl = String.format("%s%s/%s/%s/%s-%s.jar", url, dep.group.replace('.', '/'), dep.name, dep.version, dep.name, dep.version)
+                try {
+                    def jarfile = new URL(jarUrl)
+                    def inStream = jarfile.openStream()
+                    if (inStream != null) {
+                        println("${dep.group}:${dep.name}:${dep.version} -> ${jarUrl}")
+                        return jarUrl
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
     }
 }
 
-// Make sure paper-api on the repo is kept updated.
+ext.downloadPaperFile = {
+    // Placeholder URL; replace with actual Paper API URL for 1.21.5 when available
+    def fileURL = new URL("https://repo.papermc.io/repository/maven-snapshots/io/papermc/paper/paper-api/1.21.5-R0.1-SNAPSHOT/paper-api-1.21.5-R0.1-SNAPSHOT.jar")
+    def localFile = file("repos/tempp/paper-api-${PAPER_VER_B}.jar")
+    localFile.getParentFile().mkdirs()
+    fileURL.withInputStream { i ->
+        localFile.withOutputStream { o ->
+            o << i
+        }
+    }
+}
+
 publishing {
-	configurations.api.setCanBeResolved(true)
-	downloadPaperFile()
+    configurations.api.setCanBeResolved(true)
+    downloadPaperFile()
     publications {
         mavenJava(MavenPublication) {
-			groupId = 'io.papermc.paper'
+            groupId = 'io.papermc.paper'
             artifactId = PAPER_VER_A
-			version = PAPER_VER_B
-			artifact file("repos/tempp/paper-api-" + PAPER_VER_B + ".jar")
+            version = PAPER_VER_B
+            artifact file("repos/tempp/paper-api-${PAPER_VER_B}.jar")
         }
     }
     repositories {
         maven {
-            // change URLs to point to your repos, e.g. http://my.org/repo
             def releasesRepoUrl = layout.buildDirectory.dir('repos/releases')
             def snapshotsRepoUrl = layout.buildDirectory.dir('repos/snapshots')
             url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
