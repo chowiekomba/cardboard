@@ -117,7 +117,6 @@ esac
 
 CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
 
-
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then
     if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
@@ -141,6 +140,14 @@ else
 Please set the JAVA_HOME variable in your environment to match the
 location of your Java installation."
     fi
+fi
+
+# Check Java version
+JAVA_VERSION=$("$JAVACMD" -version 2>&1 | awk -F '"' '/version/ {print $2}')
+JAVA_MAJOR_VERSION=$(echo "$JAVA_VERSION" | cut -d. -f1)
+if [ "$JAVA_MAJOR_VERSION" -lt 21 ]; then
+    die "ERROR: Java 21 or higher is required for Minecraft 1.21.5. Found Java version $JAVA_VERSION.
+Please update your Java installation and set JAVA_HOME accordingly."
 fi
 
 # Increase the maximum file descriptors if we can.
@@ -201,9 +208,8 @@ if "$cygwin" || "$msys" ; then
     done
 fi
 
-
-# Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
-DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
+# Add default JVM options here. Increased memory for Fabric modding.
+DEFAULT_JVM_OPTS='"-Xmx2g" "-Xms512m"'
 
 # Collect all arguments for the java command:
 #   * DEFAULT_JVM_OPTS, JAVA_OPTS, JAVA_OPTS, and optsEnvironmentVar are not allowed to contain shell fragments,
